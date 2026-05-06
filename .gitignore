@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 知识库运行时数据
+backend/chroma_db/
+backend/uploads/
+backend/chunk_params.json
+
+# 大模型文件（需要手动下载）
+BGE-Large-ZH-v1.5/
+models/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+/tmp/

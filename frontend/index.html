@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识库管理系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-deep: #08090a;
+  --bg-panel: #0f1011;
+  --bg-surface: #191a1b;
+  --bg-elevated: #1f2022;
+  --bg-hover: rgba(255,255,255,0.04);
+  --bg-input: rgba(255,255,255,0.03);
+  --text-primary: #f7f8f8;
+  --text-secondary: #d0d6e0;
+  --text-tertiary: #8a8f98;
+  --text-quaternary: #62666d;
+  --accent: #5e6ad2;
+  --accent-hover: #7170ff;
+  --accent-light: #828fff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border: rgba(255,255,255,0.08);
+  --border-subtle: rgba(255,255,255,0.05);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --shadow-elevated: rgba(0,0,0,0.4) 0px 2px 4px;
+  --shadow-dialog: rgba(0,0,0,0) 0px 8px 2px, rgba(0,0,0,0.01) 0px 5px 2px, rgba(0,0,0,0.04) 0px 3px 2px, rgba(0,0,0,0.07) 0px 1px 1px;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+html { font-size: 15px; }
+body { font-family: var(--font); background: var(--bg-deep); color: var(--text-secondary); min-height: 100vh; display: flex; flex-direction: column; font-feature-settings: 'cv01', 'ss03'; -webkit-font-smoothing: antialiased; }
+button { font-family: var(--font); cursor: pointer; border: none; outline: none; font-feature-settings: 'cv01', 'ss03'; }
+input, textarea { font-family: var(--font); outline: none; font-feature-settings: 'cv01', 'ss03'; }
+
+/* Header */
+.header { background: var(--bg-panel); border-bottom: 1px solid var(--border-subtle); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-brand { display: flex; align-items: center; gap: 10px; }
+.header-brand svg { width: 28px; height: 28px; }
+.header-brand h1 { font-size: 16px; font-weight: 500; color: var(--text-primary); letter-spacing: -0.3px; }
+.header-status { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-quaternary); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block; }
+
+/* Layout */
+.app-layout { display: flex; flex: 1; height: calc(100vh - 53px); overflow: hidden; }
+.panel { background: var(--bg-panel); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; overflow: hidden; }
+.panel-header { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
+.panel-header h2 { font-size: 12px; font-weight: 500; color: var(--text-quaternary); text-transform: uppercase; letter-spacing: 0.5px; }
+.panel-left { width: 260px; min-width: 260px; }
+.panel-center { flex: 1; min-width: 0; }
+.panel-right { width: 360px; min-width: 360px; border-right: none; border-left: 1px solid var(--border-subtle); }
+
+/* Search & scroll */
+.panel-scroll { flex: 1; overflow-y: auto; padding: 8px; }
+.panel-scroll::-webkit-scrollbar { width: 4px; }
+.panel-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+.panel-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* KB list */
+.kb-list { display: flex; flex-direction: column; gap: 2px; }
+.kb-item { padding: 8px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 400; color: var(--text-secondary); cursor: pointer; transition: all 0.12s; display: flex; align-items: center; justify-content: space-between; }
+.kb-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.kb-item.active { background: rgba(94,106,210,0.12); color: var(--accent-light); }
+.kb-item .kb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.kb-item .kb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+.kb-item.active .kb-dot { opacity: 1; }
+.kb-empty { padding: 24px 12px; text-align: center; color: var(--text-quaternary); font-size: 13px; line-height: 1.6; }
+
+/* Form inputs */
+.input-group { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.input-group input { flex: 1; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 6px 10px; font-size: 13px; color: var(--text-primary); transition: border-color 0.15s; }
+.input-group input::placeholder { color: var(--text-quaternary); }
+.input-group input:focus { border-color: var(--accent); }
+.input-group input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: 500; border-radius: var(--radius-md); padding: 6px 12px; transition: all 0.12s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-ghost { background: rgba(255,255,255,0.02); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
+.btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-icon { width: 28px; height: 28px; padding: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-quaternary); border: 1px solid var(--border-subtle); display: inline-flex; align-items: center; justify-content: center; }
+.btn-icon:hover { background: var(--bg-hover); color: var(--text-secondary); }
+.btn-sm { font-size: 12px; padding: 4px 8px; }
+
+/* Toolbar */
+.toolbar { display: flex; align-items: center; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); }
+.toolbar .spacer { flex: 1; }
+.toolbar-info { font-size: 12px; color: var(--text-quaternary); }
+
+/* File list */
+.file-list { display: flex; flex-direction: column; gap: 1px; }
+.file-item { display: flex; align-items: center; padding: 8px 12px; border-radius: var(--radius-md); transition: background 0.1s; gap: 10px; }
+.file-item:hover { background: var(--bg-hover); }
+.file-icon { width: 24px; height: 24px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.file-icon.txt { background: rgba(94,106,210,0.15); color: var(--accent-light); }
+.file-icon.docx { background: rgba(16,185,129,0.15); color: var(--success); }
+.file-icon.pdf { background: rgba(239,68,68,0.15); color: var(--danger); }
+.file-icon.img { background: rgba(245,158,11,0.15); color: var(--warning); }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400; }
+.file-meta { font-size: 11px; color: var(--text-quaternary); margin-top: 1px; }
+.file-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+.file-item:hover .file-actions { opacity: 1; }
+.file-empty { padding: 40px 12px; text-align: center; color: var(--text-quaternary); font-size: 13px; }
+
+/* Search area */
+.search-area { padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.search-input-wrap { position: relative; }
+.search-input-wrap input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 36px 8px 12px; font-size: 13px; color: var(--text-primary); transition: border-color 0.15s; }
+.search-input-wrap input::placeholder { color: var(--text-quaternary); }
+.search-input-wrap input:focus { border-color: var(--accent); }
+.search-options { display: flex; align-items: center; gap: 8px; }
+.search-options label { font-size: 12px; color: var(--text-quaternary); }
+.search-options input[type="number"] { width: 56px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 6px; font-size: 12px; color: var(--text-secondary); text-align: center; }
+.search-actions { display: flex; gap: 6px; }
+.search-bar { display: flex; gap: 6px; }
+
+/* Result items */
+.result-list { flex: 1; overflow-y: auto; margin-top: 4px; }
+.result-list::-webkit-scrollbar { width: 4px; }
+.result-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+.result-item { padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); margin-bottom: 6px; }
+.result-item .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.result-item .result-source { font-size: 11px; color: var(--text-quaternary); }
+.result-item .result-score { font-size: 11px; color: var(--accent-light); }
+.result-item .result-content { font-size: 13px; color: var(--text-secondary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.result-empty { padding: 40px 12px; text-align: center; color: var(--text-quaternary); font-size: 13px; }
+
+/* Status bar */
+.status-bar { padding: 6px 12px; border-top: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-quaternary); display: flex; align-items: center; gap: 8px; }
+.status-bar .spinner { width: 10px; height: 10px; border: 1.5px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+.status-bar.loading .spinner { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-bar .status-text { flex: 1; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 200; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-xl); width: 480px; max-width: 90vw; max-height: 85vh; overflow: hidden; box-shadow: var(--shadow-dialog); }
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; }
+.modal-header h3 { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+.modal-body { padding: 20px; overflow-y: auto; max-height: 60vh; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Upload zone */
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center; transition: all 0.15s; cursor: pointer; margin-bottom: 16px; }
+.upload-zone:hover { border-color: var(--accent); background: rgba(94,106,210,0.04); }
+.upload-zone.dragover { border-color: var(--accent); background: rgba(94,106,210,0.08); }
+.upload-zone svg { width: 36px; height: 36px; color: var(--text-quaternary); margin-bottom: 8px; }
+.upload-zone p { font-size: 13px; color: var(--text-tertiary); }
+.upload-zone span { font-size: 11px; color: var(--text-quaternary); display: block; margin-top: 4px; }
+
+/* Chunk params */
+.param-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.param-field { flex: 1; }
+.param-field label { display: block; font-size: 12px; color: var(--text-quaternary); margin-bottom: 4px; font-weight: 500; }
+.param-field input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 7px 10px; font-size: 13px; color: var(--text-primary); }
+.param-field input:focus { border-color: var(--accent); }
+
+/* File preview in upload */
+.upload-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.upload-preview .file-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px 10px; font-size: 12px; color: var(--text-secondary); }
+.upload-preview .file-chip .remove { cursor: pointer; color: var(--text-quaternary); }
+.upload-preview .file-chip .remove:hover { color: var(--danger); }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 10px 16px; border-radius: var(--radius-md); font-size: 13px; color: var(--text-primary); background: var(--bg-elevated); border: 1px solid var(--border); box-shadow: var(--shadow-elevated); display: none; z-index: 300; max-width: 360px; }
+.toast.show { display: block; animation: toastIn 0.2s ease; }
+.toast.success { border-color: rgba(16,185,129,0.3); }
+.toast.error { border-color: rgba(239,68,68,0.3); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .panel-right { display: none; }
+  .panel-left { width: 200px; min-width: 200px; }
+}
+@media (max-width: 640px) {
+  .app-layout { flex-direction: column; }
+  .panel-left { width: 100%; min-width: 0; max-height: 200px; }
+  .panel-center { flex: 1; }
+  .panel-right { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <svg viewBox="0 0 28 28" fill="none"><rect x="2" y="2" width="24" height="24" rx="6" fill="var(--accent)"/><path d="M8 14h12M14 8v12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+    <h1>知识库</h1>
+  </div>
+  <div class="header-status">
+    <span class="status-dot"></span>
+    <span>服务运行中</span>
+  </div>
+</div>
+
+<div class="app-layout">
+
+  <!-- LEFT PANEL -->
+  <div class="panel panel-left">
+    <div class="panel-header">
+      <h2>知识库</h2>
+      <button class="btn-icon" onclick="loadKnowledgeBases()" title="刷新">↻</button>
+    </div>
+    <div class="input-group">
+      <input id="kbNameInput" placeholder="输入新知识库名称" maxlength="40" onkeydown="if(event.key==='Enter') createKnowledgeBase()">
+      <button class="btn btn-primary btn-sm" onclick="createKnowledgeBase()">创建</button>
+    </div>
+    <div class="panel-scroll">
+      <div class="kb-list" id="kbList"></div>
+    </div>
+    <div class="status-bar" id="kbStatus">
+      <span class="status-text">就绪</span>
+    </div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div class="panel panel-center">
+    <div class="panel-header">
+      <h2 id="centerTitle">文件</h2>
+    </div>
+    <div class="toolbar" id="fileToolbar" style="display:none">
+      <button class="btn btn-ghost btn-sm" onclick="showUploadModal()">+ 上传</button>
+      <button class="btn btn-danger btn-sm" id="delKbBtn" onclick="deleteKnowledgeBase()" style="display:none">删除知识库</button>
+      <div class="spacer"></div>
+      <span class="toolbar-info" id="fileCount"></span>
+    </div>
+    <div class="panel-scroll" id="filePanel">
+      <div class="file-empty" id="fileEmpty">
+        <div style="margin-bottom:8px;font-size:24px;opacity:0.3">📁</div>
+        <p>选择左侧知识库查看文件</p>
+      </div>
+      <div class="file-list" id="fileList"></div>
+    </div>
+    <div class="status-bar" id="fileStatus">
+      <div class="spinner"></div>
+      <span class="status-text">就绪</span>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel panel-right">
+    <div class="panel-header">
+      <h2>语义搜索</h2>
+    </div>
+    <div class="search-area" id="searchArea">
+      <div class="search-bar">
+        <div class="search-input-wrap" style="flex:1">
+          <input id="queryInput" placeholder="输入问题，搜索知识库内容..." onkeydown="if(event.key==='Enter') searchKB()">
+        </div>
+        <button class="btn btn-primary btn-sm" id="searchBtn" onclick="searchKB()">搜索</button>
+      </div>
+      <div class="search-options">
+        <label>返回结果数</label>
+        <input type="number" id="topKInput" value="5" min="1" max="20">
+        <div class="spacer"></div>
+        <button class="btn btn-ghost btn-sm" onclick="clearResults()">清空</button>
+      </div>
+      <div class="result-empty" id="resultPlaceholder">
+        <p>选择知识库后即可搜索</p>
+      </div>
+      <div class="result-list" id="resultList"></div>
+    </div>
+    <div class="status-bar" id="searchStatus">
+      <div class="spinner"></div>
+      <span class="status-text">就绪</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>上传文件到 <span id="modalKbName"></span></h3>
+      <button class="btn-icon" onclick="closeUploadModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="param-row">
+        <div class="param-field">
+          <label>chunk_size（分块大小）</label>
+          <input type="number" id="modalChunkSize" value="500" min="100" max="2000" step="50">
+        </div>
+        <div class="param-field">
+          <label>chunk_overlap（覆盖大小）</label>
+          <input type="number" id="modalChunkOverlap" value="50" min="0" max="500" step="10">
+        </div>
+      </div>
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>点击或拖拽文件到此处上传</p>
+        <span>支持 TXT/MD/CSV/JSON/HTML/DOCX/PDF/PPTX/XLSX/图片/源代码等</span>
+         <input type="file" id="fileInput" multiple style="display:none" accept=".txt,.md,.csv,.json,.html,.htm,.docx,.pdf,.pptx,.xlsx,.xls,.py,.js,.ts,.java,.cpp,.c,.h,.rs,.go,.rb,.php,.sh,.sql,.yaml,.yml,.xml,.css,.jpg,.jpeg,.png,.gif,.bmp,.webp" onchange="onFileSelect()">
+      </div>
+      <div class="upload-preview" id="filePreview"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeUploadModal()">取消</button>
+      <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()">开始上传</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';
+let state = { selectedKb: null, kbs: [], files: [], uploadingFiles: [] };
+
+function req(path, opts = {}) {
+  const url = API + '/api' + path;
+  return fetch(url, { ...opts, headers: { ...opts.headers } }).then(r => r.json().then(d => r.ok ? d : Promise.reject(d)));
+}
+
+function setStatus(el, text, isError = false) {
+  el.textContent = text;
+  el.closest('.status-bar').classList.toggle('loading', false);
+}
+
+function setLoading(el) {
+  el.closest('.status-bar').classList.add('loading');
+}
+
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Knowledge Bases
+function loadKnowledgeBases() {
+  const list = document.getElementById('kbList');
+  const status = document.getElementById('kbStatus').querySelector('.status-text');
+  setLoading(document.getElementById('kbStatus'));
+  req('/knowledge-bases').then(data => {
+    state.kbs = data.items || [];
+    list.innerHTML = '';
+    if (state.kbs.length === 0) {
+      list.innerHTML = '<div class="kb-empty">还没有知识库<br>输入名称创建第一个</div>';
+    } else {
+      state.kbs.forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'kb-item' + (state.selectedKb === name ? ' active' : '');
+        div.innerHTML = `<span class="kb-name">${esc(name)}</span><span class="kb-dot"></span>`;
+        div.onclick = () => selectKb(name);
+        list.appendChild(div);
+      });
+    }
+    setStatus(document.getElementById('kbStatus'), state.kbs.length + ' 个知识库');
+  }).catch(e => { setStatus(document.getElementById('kbStatus'), '加载失败', true); toast('加载知识库失败', 'error'); });
+}
+
+function createKnowledgeBase() {
+  const input = document.getElementById('kbNameInput');
+  const name = input.value.trim();
+  if (!name) return toast('请输入知识库名称', 'error');
+  req('/knowledge-bases', { method: 'POST', body: JSON.stringify({ name }), headers: { 'Content-Type': 'application/json' } })
+    .then(d => { toast('知识库「' + name + '」创建成功'); input.value = ''; loadKnowledgeBases(); })
+    .catch(e => toast(e.error || '创建失败', 'error'));
+}
+
+function deleteKnowledgeBase() {
+  if (!state.selectedKb) return;
+  if (!confirm('确认删除知识库「' + state.selectedKb + '」？所有文件将被清除。')) return;
+  req('/knowledge-bases/' + encodeURIComponent(state.selectedKb), { method: 'DELETE' })
+    .then(d => { toast('已删除'); state.selectedKb = null; updateUI(); loadKnowledgeBases(); })
+    .catch(e => toast(e.error || '删除失败', 'error'));
+}
+
+function selectKb(name) {
+  state.selectedKb = name;
+  updateUI();
+  loadFiles();
+  document.getElementById('centerTitle').textContent = name;
+}
+
+function updateUI() {
+  document.querySelectorAll('.kb-item').forEach(el => el.classList.toggle('active', el.querySelector('.kb-name').textContent === state.selectedKb));
+  document.getElementById('fileToolbar').style.display = state.selectedKb ? 'flex' : 'none';
+  document.getElementById('delKbBtn').style.display = state.selectedKb ? '' : 'none';
+  document.getElementById('searchBtn').disabled = !state.selectedKb;
+  document.getElementById('resultPlaceholder').style.display = state.selectedKb ? 'none' : 'block';
+}
+
+// Files
+function loadFiles() {
+  if (!state.selectedKb) return;
+  const list = document.getElementById('fileList');
+  const empty = document.getElementById('fileEmpty');
+  const status = document.getElementById('fileStatus').querySelector('.status-text');
+  setLoading(document.getElementById('fileStatus'));
+  req('/knowledge-bases/' + encodeURIComponent(state.selectedKb) + '/files').then(data => {
+    state.files = data.items || [];
+    empty.style.display = 'none';
+    list.innerHTML = '';
+    if (state.files.length === 0) {
+      empty.querySelector('p').textContent = '知识库为空，上传文件开始构建知识';
+      empty.style.display = 'block';
+    } else {
+      state.files.forEach(f => list.appendChild(createFileRow(f)));
+    }
+    document.getElementById('fileCount').textContent = state.files.length + ' 个文件';
+    setStatus(document.getElementById('fileStatus'), '');
+  }).catch(e => setStatus(document.getElementById('fileStatus'), '加载失败', true));
+}
+
+function createFileRow(f) {
+  const ext = (f.file_type || '.txt').toLowerCase();
+  const cls = ext === '.txt' ? 'txt' : ext === '.docx' ? 'docx' : ext === '.pdf' ? 'pdf' : 'img';
+  const div = document.createElement('div'); div.className = 'file-item';
+  const sizeStr = f.file_size ? (f.file_size > 1024*1024 ? (f.file_size/1024/1024).toFixed(1)+'MB' : (f.file_size/1024).toFixed(0)+'KB') : '';
+  div.innerHTML = `
+    <div class="file-icon ${cls}">${ext.replace('.','').toUpperCase()}</div>
+    <div class="file-info">
+      <div class="file-name">${esc(f.file_name)}</div>
+      <div class="file-meta">${sizeStr}${f.chunk_count ? ' · '+f.chunk_count+' 个切片' : ''}</div>
+    </div>
+    <div class="file-actions">
+      <button class="btn btn-ghost btn-sm" onclick="deleteFile('${f.file_id}')" title="删除">✕</button>
+    </div>`;
+  return div;
+}
+
+function deleteFile(fileId) {
+  if (!state.selectedKb) return;
+  req('/knowledge-bases/' + encodeURIComponent(state.selectedKb) + '/files/' + fileId, { method: 'DELETE' })
+    .then(d => { toast('文件已删除'); loadFiles(); })
+    .catch(e => toast(e.error || '删除失败', 'error'));
+}
+
+// Upload
+function showUploadModal() {
+  if (!state.selectedKb) return;
+  document.getElementById('modalKbName').textContent = state.selectedKb;
+  state.uploadingFiles = [];
+  document.getElementById('filePreview').innerHTML = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadBtn').disabled = false;
+  document.getElementById('uploadModal').classList.add('open');
+  // Load current params
+  req('/chunk-params').then(p => {
+    document.getElementById('modalChunkSize').value = p.chunk_size || 500;
+    document.getElementById('modalChunkOverlap').value = p.chunk_overlap || 50;
+  }).catch(() => {});
+}
+
+function closeUploadModal() { document.getElementById('uploadModal').classList.remove('open'); }
+
+function onFileSelect() {
+  const files = document.getElementById('fileInput').files;
+  state.uploadingFiles = Array.from(files);
+  renderFilePreview();
+}
+
+// Drag & drop
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  state.uploadingFiles = Array.from(e.dataTransfer.files);
+  renderFilePreview();
+});
+
+function renderFilePreview() {
+  const preview = document.getElementById('filePreview');
+  preview.innerHTML = state.uploadingFiles.map((f,i) =>
+    `<div class="file-chip"><span>${esc(f.name)}</span><span class="remove" onclick="removeFile(${i})">✕</span></div>`
+  ).join('');
+}
+
+function removeFile(i) { state.uploadingFiles.splice(i,1); renderFilePreview(); }
+
+function uploadFiles() {
+  if (!state.selectedKb || state.uploadingFiles.length === 0) return;
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true; btn.textContent = '上传中...';
+  const fd = new FormData();
+  state.uploadingFiles.forEach(f => fd.append('files', f));
+  fd.append('chunk_size', document.getElementById('modalChunkSize').value);
+  fd.append('chunk_overlap', document.getElementById('modalChunkOverlap').value);
+
+  fetch(API + '/api/knowledge-bases/' + encodeURIComponent(state.selectedKb) + '/upload', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error || d.detail) throw (d.error || d.detail);
+      const count = (d.items || []).length;
+      toast('上传成功，' + count + ' 个文件已处理');
+      closeUploadModal();
+      loadFiles();
+    })
+    .catch(e => { toast(e.error || '上传失败', 'error'); btn.disabled = false; btn.textContent = '开始上传'; });
+}
+
+// Search
+function searchKB() {
+  if (!state.selectedKb) return;
+  const query = document.getElementById('queryInput').value.trim();
+  if (!query) return toast('请输入搜索内容', 'error');
+  const k = parseInt(document.getElementById('topKInput').value) || 5;
+  const status = document.getElementById('searchStatus').querySelector('.status-text');
+  setLoading(document.getElementById('searchStatus'));
+  document.getElementById('resultPlaceholder').style.display = 'none';
+  document.getElementById('resultList').innerHTML = '';
+
+  req('/knowledge-bases/' + encodeURIComponent(state.selectedKb) + '/search', {
+    method: 'POST',
+    body: JSON.stringify({ query, k }),
+    headers: { 'Content-Type': 'application/json' }
+  }).then(data => {
+    const items = data.items || [];
+    const list = document.getElementById('resultList');
+    if (items.length === 0) {
+      list.innerHTML = '<div class="result-empty">未找到相关内容</div>';
+    } else {
+      list.innerHTML = items.map((r, i) => `
+        <div class="result-item">
+          <div class="result-header">
+            <span class="result-source">${esc(r.metadata?.file_name || '未知')} · 切片 ${(r.metadata?.chunk_index || 0)+1}</span>
+            <span class="result-score">${(r.score*100).toFixed(0)}%</span>
+          </div>
+          <div class="result-content">${esc(r.content)}</div>
+        </div>`).join('');
+    }
+    setStatus(document.getElementById('searchStatus'), '找到 ' + items.length + ' 条结果');
+  }).catch(e => { setStatus(document.getElementById('searchStatus'), '搜索失败', true); toast(e.error || '搜索失败', 'error'); });
+}
+
+function clearResults() {
+  document.getElementById('queryInput').value = '';
+  document.getElementById('resultList').innerHTML = '';
+  document.getElementById('resultPlaceholder').style.display = state.selectedKb ? 'none' : 'block';
+  setStatus(document.getElementById('searchStatus'), '结果已清空');
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Init
+loadKnowledgeBases();
+</script>
+</body>
+</html>
